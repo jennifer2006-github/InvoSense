@@ -1,0 +1,20 @@
+# Environments
+backend/venv/
+.env
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Uploads & Data
+backend/uploads/
+backend/chroma_db/
+backend/invosense.db
+
+# OS Files
+.DS_Store
+Thumbs.db

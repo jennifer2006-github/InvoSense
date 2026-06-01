@@ -1,0 +1,1323 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>InvoSense — Intelligent Invoice Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --border: #2a2a3d;
+      --accent: #7c6dfa;
+      --accent2: #4fffb0;
+      --accent3: #ff6b6b;
+      --amber: #ffc857;
+      --text: #e8e8f0;
+      --muted: #6b6b8a;
+      --valid: #4fffb0;
+      --ambiguous: #ffc857;
+      --invalid: #ff6b6b;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    html, body, #root { height: 100%; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Layout */
+    .app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      min-width: 240px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      z-index: 10;
+    }
+    .sidebar-logo {
+      padding: 28px 24px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text {
+      font-family: var(--font-head);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .logo-sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 12px 12px 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(124, 109, 250, 0.15); color: var(--accent); }
+    .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--accent3);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-family: var(--font-mono);
+    }
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .topbar-title {
+      font-family: var(--font-head);
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .topbar-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .page { padding: 32px; flex: 1; }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .card-sm { padding: 16px 20px; border-radius: 12px; }
+
+    /* Upload Zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 20px;
+      padding: 64px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(124,109,250,0.05), transparent 70%);
+      pointer-events: none;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(124, 109, 250, 0.05);
+    }
+    .upload-icon { font-size: 56px; margin-bottom: 16px; display: block; }
+    .upload-title {
+      font-family: var(--font-head);
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .upload-sub { color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .upload-types {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .type-tag {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      font-family: var(--font-body);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover { background: #6a5de8; transform: translateY(-1px); }
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-success {
+      background: rgba(79, 255, 176, 0.15);
+      color: var(--valid);
+      border: 1px solid rgba(79, 255, 176, 0.3);
+    }
+    .btn-danger {
+      background: rgba(255, 107, 107, 0.15);
+      color: var(--invalid);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Status badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+    .badge-valid { background: rgba(79,255,176,0.12); color: var(--valid); border: 1px solid rgba(79,255,176,0.25); }
+    .badge-ambiguous { background: rgba(255,200,87,0.12); color: var(--ambiguous); border: 1px solid rgba(255,200,87,0.25); }
+    .badge-not_invoice, .badge-rejected { background: rgba(255,107,107,0.12); color: var(--invalid); border: 1px solid rgba(255,107,107,0.25); }
+
+    /* Result panel */
+    .result-panel {
+      border-radius: 20px;
+      padding: 28px;
+      border: 1px solid;
+      animation: slideIn 0.3s ease;
+    }
+    .result-valid { background: rgba(79,255,176,0.05); border-color: rgba(79,255,176,0.3); }
+    .result-ambiguous { background: rgba(255,200,87,0.05); border-color: rgba(255,200,87,0.3); }
+    .result-not_invoice { background: rgba(255,107,107,0.05); border-color: rgba(255,107,107,0.3); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+    .result-emoji { font-size: 40px; }
+    .result-title { font-family: var(--font-head); font-size: 24px; font-weight: 700; }
+    .result-conf { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+    /* Confidence bar */
+    .conf-bar { height: 4px; background: var(--surface2); border-radius: 2px; margin-top: 8px; width: 200px; }
+    .conf-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+
+    /* Field grid */
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .field-item {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+    .field-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
+    .field-value { font-size: 14px; font-weight: 500; font-family: var(--font-mono); }
+    .field-value.null { color: var(--muted); font-style: italic; }
+
+    /* Issues list */
+    .issues-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .issue-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(255,200,87,0.08);
+      border: 1px solid rgba(255,200,87,0.2);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--ambiguous);
+    }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 60px; height: 60px;
+      border-radius: 0 16px 0 60px;
+      opacity: 0.08;
+    }
+    .stat-card.valid::after { background: var(--valid); }
+    .stat-card.ambiguous::after { background: var(--ambiguous); }
+    .stat-card.invalid::after { background: var(--invalid); }
+    .stat-card.total::after { background: var(--accent); }
+    .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-value { font-family: var(--font-head); font-size: 36px; font-weight: 800; margin: 8px 0 4px; }
+    .stat-sub { font-size: 12px; color: var(--muted); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--surface2); }
+    th {
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    td {
+      padding: 14px 16px;
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+    tr:hover td { background: rgba(124, 109, 250, 0.04); }
+    .mono { font-family: var(--font-mono); }
+
+    /* Modal / Popup */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      animation: fadeIn 0.15s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 480px;
+      width: 90%;
+      animation: scaleIn 0.2s ease;
+    }
+    @keyframes scaleIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* Loading spinner */
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      animation: progress 2s ease-in-out infinite;
+    }
+    @keyframes progress {
+      0% { width: 0%; margin-left: 0; }
+      50% { width: 60%; margin-left: 20%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+
+    /* Charts */
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
+
+    /* Divider */
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 14px;
+      z-index: 200;
+      animation: slideUp 0.3s ease;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Section title */
+    .section-title {
+      font-family: var(--font-head);
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 64px 32px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+    .empty-title { font-family: var(--font-head); font-size: 18px; color: var(--text); margin-bottom: 8px; }
+
+    /* Input */
+    input[type="file"] { display: none; }
+
+    /* Calculation summary */
+    .calc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      font-size: 14px;
+    }
+    .calc-row.total {
+      border-top: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 16px;
+      margin-top: 4px;
+      padding-top: 14px;
+    }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+    .tab {
+      padding: 8px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      border: none;
+      background: none;
+      transition: all 0.15s;
+      font-family: var(--font-body);
+    }
+    .tab.active { background: var(--surface2); color: var(--text); }
+    .tab:hover { color: var(--text); }
+
+    .flex { display: flex; }
+    .flex-center { display: flex; align-items: center; }
+    .gap-8 { gap: 8px; }
+    .gap-12 { gap: 12px; }
+    .gap-16 { gap: 16px; }
+    .mt-8 { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .mb-16 { margin-bottom: 16px; }
+    .ml-auto { margin-left: auto; }
+    .text-muted { color: var(--muted); }
+    .text-sm { font-size: 13px; }
+    .text-xs { font-size: 11px; }
+    .font-mono { font-family: var(--font-mono); }
+    .w-full { width: 100%; }
+    .justify-between { justify-content: space-between; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+const { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
+
+const API = "http://localhost:8000/api";
+
+// ─── Utilities ───────────────────────────────────────────────────────────────
+
+function fmt(val, currency = "INR") {
+  if (val == null) return "—";
+  const sym = currency === "USD" ? "$" : currency === "EUR" ? "€" : "₹";
+  return `${sym}${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+}
+
+function timeAgo(iso) {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+// ─── Mock API (works without backend) ────────────────────────────────────────
+
+const MOCK_MODE = false; // Set to false when backend is running
+
+const MOCK_INVOICES = [
+  { id: 1, filename: "vendor_invoice_001.pdf", status: "valid", confidence: 0.94, vendor_name: "TechParts Ltd", invoice_number: "INV-2024-001", invoice_date: "2024-01-15", subtotal: 45000, tax_amount: 8100, grand_total: 53100, total_match: true, issues: [], reviewed: false, uploaded_at: new Date(Date.now()-3600000).toISOString() },
+  { id: 2, filename: "supplier_bill.jpg", status: "ambiguous", confidence: 0.71, vendor_name: "AutoGears Co", invoice_number: null, invoice_date: "2024-01-12", subtotal: 12000, tax_amount: null, grand_total: 14500, total_match: false, issues: ["Invoice number not found", "Tax information not found", "Total mismatch: calculated 13200, stated 14500"], reviewed: false, uploaded_at: new Date(Date.now()-7200000).toISOString() },
+  { id: 3, filename: "random_doc.pdf", status: "not_invoice", confidence: 0.89, vendor_name: null, invoice_number: null, invoice_date: null, subtotal: null, tax_amount: null, grand_total: null, total_match: null, issues: ["Document does not appear to be an invoice"], reviewed: false, uploaded_at: new Date(Date.now()-86400000).toISOString() },
+  { id: 4, filename: "parts_invoice_march.pdf", status: "valid", confidence: 0.97, vendor_name: "Precision Motors", invoice_number: "PM-2024-089", invoice_date: "2024-01-10", subtotal: 78000, tax_amount: 14040, grand_total: 92040, total_match: true, issues: [], reviewed: true, uploaded_at: new Date(Date.now()-172800000).toISOString() },
+];
+
+async function apiCall(path, options = {}) {
+  if (MOCK_MODE) {
+    await new Promise(r => setTimeout(r, 800));
+    if (path === "/invoices") return [...MOCK_INVOICES];
+    if (path.startsWith("/analytics/summary")) return { total: 4, valid: 2, ambiguous: 1, not_invoice: 1, rejected: 0, pending_review: 1, total_spend: 145140, approval_rate: 50 };
+    if (path.startsWith("/analytics/daily")) return ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d,i) => ({ date: d, count: [1,0,2,1,3,0,1][i] }));
+    if (path.startsWith("/analytics/vendors")) return [{ vendor: "TechParts Ltd", count: 2, total_spend: 106200 }, { vendor: "AutoGears Co", count: 1, total_spend: 14500 }, { vendor: "Precision Motors", count: 1, total_spend: 92040 }];
+    return null;
+  }
+  const res = await fetch(`${API}${path}`, options);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function uploadFile(file) {
+  if (MOCK_MODE) {
+    await new Promise(r => setTimeout(r, 2500));
+    const roll = Math.random();
+    if (roll < 0.5) return { id: 99, filename: file.name, status: "valid", confidence: 0.93, issues: [], fields: { vendor_name: "Sample Vendor Pvt Ltd", invoice_number: "INV-2024-099", invoice_date: "2024-01-20", grand_total: 25000, currency: "INR" }, calculation: { subtotal: 21186, tax: 3814, grand_total: 25000, currency: "INR", line_item_count: 3 }, total_match: true, math_issues: [] };
+    if (roll < 0.8) return { id: 100, filename: file.name, status: "ambiguous", confidence: 0.68, issues: ["Invoice number not found", "Tax information missing", "Vendor name unclear"], fields: { vendor_name: null, invoice_number: null, invoice_date: "2024-01-18", grand_total: 8500, currency: "INR" }, calculation: {}, total_match: null, math_issues: [] };
+    return { id: 101, filename: file.name, status: "not_invoice", confidence: 0.91, issues: ["Document does not resemble an invoice"], fields: {}, calculation: {}, total_match: null, math_issues: [] };
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API}/upload`, { method: "POST", body: formData });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// ─── Components ──────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }) {
+  const map = { valid: ["✓", "Valid"], ambiguous: ["⚠", "Ambiguous"], not_invoice: ["✕", "Not Invoice"], rejected: ["✕", "Rejected"] };
+  const [icon, label] = map[status] || ["?", status];
+  return <span className={`badge badge-${status}`}>{icon} {label}</span>;
+}
+
+function Toast({ msg, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, []);
+  return <div className="toast">{msg}</div>;
+}
+
+function NotInvoiceModal({ onClose }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🚫</div>
+          <h2 style={{ fontFamily: "var(--font-head)", fontSize: 24, marginBottom: 12 }}>Not an Invoice</h2>
+          <p style={{ color: "var(--muted)", lineHeight: 1.7, marginBottom: 24 }}>
+            The uploaded document was not recognized as an invoice. Please ensure you're uploading a valid invoice, bill, or receipt and try again.
+          </p>
+          <button className="btn btn-primary w-full" onClick={onClose} style={{ justifyContent: "center" }}>
+            Got it, Upload Again
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfidenceBar({ value, color }) {
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div className="conf-bar">
+        <div className="conf-fill" style={{ width: `${value * 100}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+function FieldGrid({ fields }) {
+  const items = [
+    ["Vendor", fields.vendor_name],
+    ["Invoice No", fields.invoice_number],
+    ["Date", fields.invoice_date],
+    ["Due Date", fields.due_date],
+    ["GSTIN", fields.gstin],
+    ["PO Number", fields.po_number],
+    ["Currency", fields.currency],
+  ];
+  return (
+    <div className="field-grid">
+      {items.map(([label, value]) => (
+        <div key={label} className="field-item">
+          <div className="field-label">{label}</div>
+          <div className={`field-value ${!value ? "null" : ""}`}>{value || "Not found"}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CalcSummary({ calc, currency = "INR" }) {
+  if (!calc || !calc.grand_total) return null;
+  return (
+    <div style={{ background: "var(--surface2)", borderRadius: 12, padding: "16px 20px" }}>
+      <div className="section-title" style={{ fontSize: 15, marginBottom: 12 }}>💰 Financial Summary</div>
+      <div className="calc-row"><span className="text-muted">Subtotal</span><span className="font-mono">{fmt(calc.subtotal, currency)}</span></div>
+      <div className="calc-row"><span className="text-muted">Tax (GST/VAT)</span><span className="font-mono">{fmt(calc.tax, currency)}</span></div>
+      <div className="calc-row total"><span>Grand Total</span><span className="font-mono" style={{ color: "var(--accent2)" }}>{fmt(calc.grand_total, currency)}</span></div>
+      {calc.line_item_count > 0 && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>{calc.line_item_count} line items detected</div>}
+    </div>
+  );
+}
+
+// ─── Pages ───────────────────────────────────────────────────────────────────
+
+function UploadPage({ onToast, pendingCount }) {
+  const [dragging, setDragging] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const inputRef = useRef();
+
+  const handleFile = useCallback(async (file) => {
+    if (!file) return;
+    const allowed = ["application/pdf", "image/jpeg", "image/png", "image/jpg", "image/webp"];
+    if (!allowed.includes(file.type)) { onToast("❌ Only PDF and image files are supported"); return; }
+    if (file.size > 10 * 1024 * 1024) { onToast("❌ File too large. Max 10MB"); return; }
+
+    setLoading(true);
+    setResult(null);
+    try {
+      const data = await uploadFile(file);
+      setResult(data);
+      if (data.status === "not_invoice") setShowModal(true);
+    } catch (e) {
+      onToast("❌ Upload failed. Is the backend running?");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const onDrop = (e) => {
+    e.preventDefault(); setDragging(false);
+    handleFile(e.dataTransfer.files[0]);
+  };
+
+  const statusColor = { valid: "var(--valid)", ambiguous: "var(--ambiguous)", not_invoice: "var(--invalid)" };
+  const statusEmoji = { valid: "✅", ambiguous: "⚠️", not_invoice: "❌" };
+  const statusTitle = { valid: "Valid Invoice Detected", ambiguous: "Ambiguous Invoice — Review Required", not_invoice: "Not an Invoice" };
+
+  return (
+    <div className="page">
+      {showModal && <NotInvoiceModal onClose={() => setShowModal(false)} />}
+
+      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+        {/* Upload zone */}
+        <div
+          className={`upload-zone ${dragging ? "drag-over" : ""}`}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={onDrop}
+          onClick={() => !loading && inputRef.current.click()}
+        >
+          <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e => handleFile(e.target.files[0])} />
+          {loading ? (
+            <>
+              <div className="spinner" style={{ marginBottom: 24 }} />
+              <div className="upload-title">Analyzing document...</div>
+              <div className="progress-bar" style={{ maxWidth: 200, margin: "16px auto 0" }}>
+                <div className="progress-fill" />
+              </div>
+              <div className="upload-sub" style={{ marginTop: 12 }}>Running OCR and AI classification</div>
+            </>
+          ) : (
+            <>
+              <span className="upload-icon">📄</span>
+              <div className="upload-title">Drop your invoice here</div>
+              <div className="upload-sub">or click to browse files<br/>Supports PDF, JPG, PNG, WEBP</div>
+              <div className="upload-types">
+                {[".pdf", ".jpg", ".png", ".webp"].map(t => <span key={t} className="type-tag">{t}</span>)}
+                <span className="type-tag">max 10mb</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Result */}
+        {result && !loading && (
+          <div className={`result-panel result-${result.status}`} style={{ marginTop: 24 }}>
+            <div className="result-header">
+              <span className="result-emoji">{statusEmoji[result.status]}</span>
+              <div>
+                <div className="result-title">{statusTitle[result.status]}</div>
+                <div className="result-conf">
+                  Confidence: {Math.round(result.confidence * 100)}%
+                  <ConfidenceBar value={result.confidence} color={statusColor[result.status]} />
+                </div>
+              </div>
+              <div style={{ marginLeft: "auto" }}><StatusBadge status={result.status} /></div>
+            </div>
+
+            {result.status !== "not_invoice" && (
+              <>
+                {result.fields && Object.keys(result.fields).length > 0 && (
+                  <>
+                    <div className="section-title" style={{ fontSize: 15 }}>📋 Extracted Fields</div>
+                    <FieldGrid fields={result.fields} />
+                  </>
+                )}
+
+                {result.calculation && result.calculation.grand_total && (
+                  <div style={{ marginTop: 16 }}>
+                    <CalcSummary calc={result.calculation} currency={result.fields?.currency} />
+                  </div>
+                )}
+
+                {result.issues && result.issues.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div className="section-title" style={{ fontSize: 15 }}>⚠️ Issues Detected</div>
+                    <div className="issues-list">
+                      {result.issues.map((issue, i) => (
+                        <div key={i} className="issue-item">⚠ {issue}</div>
+                      ))}
+                    </div>
+                    {result.status === "ambiguous" && (
+                      <div style={{ marginTop: 12, fontSize: 13, color: "var(--muted)" }}>
+                        This invoice has been flagged for human review. Go to the Review Dashboard to approve or reject.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {result.total_match === true && (
+                  <div style={{ marginTop: 12, padding: "10px 16px", background: "rgba(79,255,176,0.08)", border: "1px solid rgba(79,255,176,0.2)", borderRadius: 10, fontSize: 13, color: "var(--valid)" }}>
+                    ✓ All calculations verified — totals match
+                  </div>
+                )}
+              </>
+            )}
+
+            <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
+              <button className="btn btn-ghost" onClick={() => { setResult(null); inputRef.current.value = ""; }}>
+                ↑ Upload Another
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DashboardPage({ onToast }) {
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
+  const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    apiCall("/invoices").then(data => { setInvoices(data || []); setLoading(false); });
+  }, []);
+
+  const filtered = filter === "all" ? invoices : invoices.filter(i => i.status === filter);
+
+  const handleReview = async (id, action) => {
+    if (MOCK_MODE) {
+      setInvoices(prev => prev.map(i => i.id === id ? { ...i, status: action === "approve" ? "valid" : "rejected", reviewed: true } : i));
+      setSelected(null);
+      onToast(action === "approve" ? "✅ Invoice approved" : "❌ Invoice rejected");
+      return;
+    }
+    try {
+      await apiCall(`/invoices/${id}/review`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, note: "" })
+      });
+      setInvoices(prev => prev.map(i => i.id === id ? { ...i, status: action === "approve" ? "valid" : "rejected", reviewed: true } : i));
+      setSelected(null);
+      onToast(action === "approve" ? "✅ Approved" : "❌ Rejected");
+    } catch { onToast("❌ Action failed"); }
+  };
+
+  return (
+    <div className="page">
+      {selected && (
+        <div className="modal-overlay" onClick={() => setSelected(null)}>
+          <div className="modal" style={{ maxWidth: 560 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ fontFamily: "var(--font-head)", fontSize: 20 }}>Invoice Detail</h2>
+              <button className="btn btn-ghost" style={{ padding: "6px 12px" }} onClick={() => setSelected(null)}>✕</button>
+            </div>
+            <div style={{ marginBottom: 16 }}><StatusBadge status={selected.status} /></div>
+            <FieldGrid fields={{ vendor_name: selected.vendor_name, invoice_number: selected.invoice_number, invoice_date: selected.invoice_date }} />
+            <div className="divider" />
+            <CalcSummary calc={{ subtotal: selected.subtotal, tax: selected.tax_amount, grand_total: selected.grand_total }} />
+            {selected.issues?.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "var(--ambiguous)" }}>Issues</div>
+                <div className="issues-list">{selected.issues.map((issue, i) => <div key={i} className="issue-item">⚠ {issue}</div>)}</div>
+              </div>
+            )}
+            {selected.status === "ambiguous" && !selected.reviewed && (
+              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                <button className="btn btn-success" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleReview(selected.id, "approve")}>✓ Approve</button>
+                <button className="btn btn-danger" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleReview(selected.id, "reject")}>✕ Reject</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="section-title">All Invoices</div>
+      <div className="tabs">
+        {[["all","All"],["valid","Valid"],["ambiguous","Ambiguous"],["not_invoice","Not Invoice"],["rejected","Rejected"]].map(([val, label]) => (
+          <button key={val} className={`tab ${filter === val ? "active" : ""}`} onClick={() => setFilter(val)}>{label}</button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 64 }}><div className="spinner" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="empty">
+          <span className="empty-icon">📭</span>
+          <div className="empty-title">No invoices yet</div>
+          <div>Upload an invoice to get started</div>
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Filename</th>
+                <th>Vendor</th>
+                <th>Invoice No</th>
+                <th>Date</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Confidence</th>
+                <th>Uploaded</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(inv => (
+                <tr key={inv.id}>
+                  <td className="mono text-muted text-xs">{inv.id}</td>
+                  <td style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inv.filename}</td>
+                  <td>{inv.vendor_name || <span className="text-muted">—</span>}</td>
+                  <td className="mono text-sm">{inv.invoice_number || <span className="text-muted">—</span>}</td>
+                  <td className="text-sm">{inv.invoice_date || <span className="text-muted">—</span>}</td>
+                  <td className="mono text-sm">{inv.grand_total ? fmt(inv.grand_total) : <span className="text-muted">—</span>}</td>
+                  <td><StatusBadge status={inv.status} /></td>
+                  <td><span className="mono text-sm">{Math.round((inv.confidence || 0) * 100)}%</span></td>
+                  <td className="text-muted text-sm">{timeAgo(inv.uploaded_at)}</td>
+                  <td>
+                    <button className="btn btn-ghost" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => setSelected(inv)}>
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AnalyticsPage() {
+  const [summary, setSummary] = useState(null);
+  const [daily, setDaily] = useState([]);
+  const [vendors, setVendors] = useState([]);
+
+  useEffect(() => {
+    Promise.all([
+      apiCall("/analytics/summary"),
+      apiCall("/analytics/daily"),
+      apiCall("/analytics/vendors"),
+    ]).then(([s, d, v]) => { setSummary(s); setDaily(d); setVendors(v); });
+  }, []);
+
+  const pieData = summary ? [
+    { name: "Valid", value: summary.valid, color: "#4fffb0" },
+    { name: "Ambiguous", value: summary.ambiguous, color: "#ffc857" },
+    { name: "Not Invoice", value: summary.not_invoice, color: "#ff6b6b" },
+    { name: "Rejected", value: summary.rejected, color: "#6b6b8a" },
+  ].filter(d => d.value > 0) : [];
+
+  return (
+    <div className="page">
+      <div className="section-title">Overview</div>
+
+      {summary && (
+        <div className="stats-row">
+          {[
+            { label: "Total Processed", value: summary.total, sub: "all time", cls: "total" },
+            { label: "Valid Invoices", value: summary.valid, sub: `${summary.approval_rate}% approval rate`, cls: "valid" },
+            { label: "Pending Review", value: summary.pending_review, sub: "need human action", cls: "ambiguous" },
+            { label: "Total Spend", value: fmt(summary.total_spend), sub: "from valid invoices", cls: "total" },
+          ].map(s => (
+            <div key={s.label} className={`stat-card ${s.cls}`}>
+              <div className="stat-label">{s.label}</div>
+              <div className="stat-value">{s.value}</div>
+              <div className="stat-sub">{s.sub}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="chart-grid">
+        {/* Daily uploads */}
+        <div className="card">
+          <div className="section-title" style={{ fontSize: 15 }}>📈 Daily Uploads (Last 7 Days)</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={daily} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="date" tick={{ fill: "var(--muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)" }} />
+              <Bar dataKey="count" fill="var(--accent)" radius={[4,4,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Status breakdown */}
+        <div className="card">
+          <div className="section-title" style={{ fontSize: 15 }}>🥧 Status Breakdown</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={50} paddingAngle={4}>
+                {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+              </Pie>
+              <Tooltip contentStyle={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)" }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
+            {pieData.map(d => (
+              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)" }}>
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: d.color }} />
+                {d.name} ({d.value})
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top vendors */}
+        <div className="card" style={{ gridColumn: "1 / -1" }}>
+          <div className="section-title" style={{ fontSize: 15 }}>🏢 Top Vendors by Invoice Count</div>
+          {vendors.length === 0 ? (
+            <div className="text-muted text-sm">No vendor data yet</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={vendors} layout="vertical" margin={{ left: 80, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: "var(--muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis dataKey="vendor" type="category" tick={{ fill: "var(--text)", fontSize: 12 }} axisLine={false} tickLine={false} width={80} />
+                <Tooltip contentStyle={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)" }} />
+                <Bar dataKey="count" fill="var(--accent2)" radius={[0,4,4,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewPage({ onToast }) {
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiCall("/invoices").then(data => {
+      setInvoices((data || []).filter(i => i.status === "ambiguous" && !i.reviewed));
+      setLoading(false);
+    });
+  }, []);
+
+  const handle = async (id, action) => {
+    if (MOCK_MODE) {
+      setInvoices(prev => prev.filter(i => i.id !== id));
+      onToast(action === "approve" ? "✅ Invoice approved" : "❌ Invoice rejected");
+      return;
+    }
+    try {
+      await apiCall(`/invoices/${id}/review`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, note: "" }) });
+      setInvoices(prev => prev.filter(i => i.id !== id));
+      onToast(action === "approve" ? "✅ Approved" : "❌ Rejected");
+    } catch { onToast("❌ Action failed"); }
+  };
+
+  return (
+    <div className="page">
+      <div className="section-title">🔍 Human Review Queue</div>
+      <p className="text-muted text-sm" style={{ marginBottom: 24 }}>
+        These invoices were flagged as ambiguous and need your review before processing.
+      </p>
+      {loading ? <div className="spinner" /> : invoices.length === 0 ? (
+        <div className="empty">
+          <span className="empty-icon">🎉</span>
+          <div className="empty-title">All clear!</div>
+          <div>No invoices pending review</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {invoices.map(inv => (
+            <div key={inv.id} className="card">
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                    <span style={{ fontFamily: "var(--font-head)", fontSize: 16, fontWeight: 700 }}>{inv.filename}</span>
+                    <StatusBadge status={inv.status} />
+                    <span className="mono text-muted text-xs" style={{ marginLeft: "auto" }}>{timeAgo(inv.uploaded_at)}</span>
+                  </div>
+                  <div className="field-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+                    {[["Vendor", inv.vendor_name], ["Invoice No", inv.invoice_number], ["Total", inv.grand_total ? fmt(inv.grand_total) : null]].map(([l,v]) => (
+                      <div key={l} className="field-item">
+                        <div className="field-label">{l}</div>
+                        <div className={`field-value ${!v ? "null" : ""}`}>{v || "Not found"}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {inv.issues?.length > 0 && (
+                    <div className="issues-list" style={{ marginTop: 12 }}>
+                      {inv.issues.map((issue, i) => <div key={i} className="issue-item">⚠ {issue}</div>)}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 120 }}>
+                  <button className="btn btn-success" onClick={() => handle(inv.id, "approve")} style={{ justifyContent: "center" }}>✓ Approve</button>
+                  <button className="btn btn-danger" onClick={() => handle(inv.id, "reject")} style={{ justifyContent: "center" }}>✕ Reject</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChatbotPage({ onToast }) {
+  const [messages, setMessages] = useState([{ role: "ai", text: "Hello! Upload a policy document and ask me anything." }]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`${API}/chat/upload`, { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload failed");
+      
+      const data = await res.json();
+      onToast(`✅ ${data.message}`);
+      setMessages(prev => [...prev, { role: "ai", text: `Successfully processed ${file.name}. You can ask me questions about it now!` }]);
+    } catch (err) {
+      onToast("❌ Failed to process document for knowledge base.");
+    } finally {
+      setUploading(false);
+      e.target.value = ""; // Reset input
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    
+    const userMsg = input;
+    setMessages(prev => [...prev, { role: "user", text: userMsg }]);
+    setInput("");
+    setLoading(true);
+    
+    try {
+      const res = await fetch(`${API}/chat/ask`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMsg })
+      });
+      
+      if (!res.ok) throw new Error("API Error");
+      const data = await res.json();
+      
+      setMessages(prev => [...prev, { role: "ai", text: data.reply }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: "ai", text: "❌ Sorry, I encountered an error. Is GEMINI_API_KEY set correctly?" }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="page" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 80px)" }}>
+      <div className="section-title" style={{ display: "flex", justifyContent: "space-between" }}>
+        <span>💬 Policy Q&A Chatbot</span>
+        <div>
+          <label className="btn btn-ghost" style={{ cursor: "pointer", fontSize: 13, padding: "6px 12px" }}>
+            {uploading ? "Uploading..." : "📄 Upload Document"}
+            <input type="file" onChange={handleUpload} disabled={uploading} accept=".pdf,.txt,.png,.jpg" style={{ display: "none" }} />
+          </label>
+        </div>
+      </div>
+      
+      <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: 0 }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+          {messages.map((msg, i) => (
+            <div key={i} style={{ 
+              alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+              background: msg.role === "user" ? "var(--accent)" : "var(--surface2)",
+              color: msg.role === "user" ? "white" : "var(--text)",
+              padding: "12px 16px",
+              borderRadius: "16px",
+              borderBottomRightRadius: msg.role === "user" ? "4px" : "16px",
+              borderBottomLeftRadius: msg.role === "ai" ? "4px" : "16px",
+              maxWidth: "80%",
+              lineHeight: 1.5,
+              fontSize: 14,
+              whiteSpace: "pre-wrap"
+            }}>
+              {msg.text}
+            </div>
+          ))}
+          {loading && (
+            <div style={{ alignSelf: "flex-start", background: "var(--surface2)", padding: "12px 16px", borderRadius: "16px", fontSize: 14 }}>
+              <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2, display: "inline-block", marginRight: 8, verticalAlign: "middle" }}></span>
+              Thinking...
+            </div>
+          )}
+        </div>
+        
+        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: 12, background: "var(--surface)" }}>
+          <input 
+            type="text" 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            placeholder="Ask a question about the uploaded policies..."
+            style={{ flex: 1, padding: "12px 16px", borderRadius: "12px", border: "1px solid var(--border)", background: "var(--surface2)", color: "white", outline: "none" }}
+          />
+          <button className="btn btn-primary" onClick={handleSend} disabled={loading || !input.trim()}>
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── App Shell ────────────────────────────────────────────────────────────────
+
+function App() {
+  const [page, setPage] = useState("upload");
+  const [toast, setToast] = useState(null);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const onToast = (msg) => { setToast(msg); };
+
+  useEffect(() => {
+    if (!MOCK_MODE) {
+      apiCall("/analytics/summary")
+        .then(data => { if (data) setPendingCount(data.pending_review); })
+        .catch(() => {});
+    }
+  }, [page]);
+
+  const navItems = [
+    { id: "upload", icon: "↑", label: "Upload Invoice" },
+    { id: "dashboard", icon: "☰", label: "All Invoices" },
+    { id: "review", icon: "🔍", label: "Review Queue", badge: pendingCount > 0 ? pendingCount : null },
+    { id: "analytics", icon: "◎", label: "Analytics" },
+    { id: "chatbot", icon: "💬", label: "Policy Chatbot" },
+  ];
+
+  const topTitles = {
+    upload: ["Upload Invoice", "Drag & drop or click to analyze"],
+    dashboard: ["Invoice Dashboard", "All processed invoices"],
+    review: ["Review Queue", "Ambiguous invoices needing human action"],
+    analytics: ["Analytics", "Processing insights and spend overview"],
+    chatbot: ["Policy Q&A", "Ask questions about your uploaded documents"],
+  };
+
+  return (
+    <div className="app">
+      {toast && <Toast msg={toast} onClose={() => setToast(null)} />}
+
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="logo-mark">
+            <div className="logo-icon">⚡</div>
+            <div>
+              <div className="logo-text">InvoSense</div>
+              <div className="logo-sub">AI Invoice Detection</div>
+            </div>
+          </div>
+        </div>
+
+        <nav className="sidebar-nav">
+          <div className="nav-section-label">Main</div>
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              className={`nav-item ${page === item.id ? "active" : ""}`}
+              onClick={() => setPage(item.id)}
+            >
+              <span className="icon">{item.icon}</span>
+              {item.label}
+              {item.badge && <span className="nav-badge">{item.badge}</span>}
+            </button>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          {MOCK_MODE && <div style={{ marginBottom: 8, color: "var(--amber)", fontSize: 11, fontWeight: 600 }}>⚡ Demo Mode</div>}
+          InvoSense v1.0 · IT Project<br />CBIT — 2024
+        </div>
+      </aside>
+
+      <div className="main">
+        <div className="topbar">
+          <div>
+            <div className="topbar-title">{topTitles[page][0]}</div>
+            <div className="topbar-sub">{topTitles[page][1]}</div>
+          </div>
+          {page === "upload" && (
+            <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "right", fontFamily: "var(--font-mono)" }}>
+              PDF · JPG · PNG · WEBP
+            </div>
+          )}
+        </div>
+
+        {page === "upload" && <UploadPage onToast={onToast} pendingCount={pendingCount} />}
+        {page === "dashboard" && <DashboardPage onToast={onToast} />}
+        {page === "review" && <ReviewPage onToast={onToast} />}
+        {page === "analytics" && <AnalyticsPage />}
+        {page === "chatbot" && <ChatbotPage onToast={onToast} />}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

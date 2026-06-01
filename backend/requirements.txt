@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+python-dotenv
+python-multipart
+pymupdf
+pytesseract
+Pillow
+pydantic
+chromadb
+sentence-transformers
+google-genai
+langchain-text-splitters
