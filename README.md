@@ -1,172 +1,80 @@
 # InvoSense – Intelligent Invoice Processing & RAG Chatbot
-A **full‑stack AI‑powered application** that lets you upload invoices, extracts key data via OCR, classifies documents, validates totals, stores results in SQLite, and provides a **policy/knowledge‑base chatbot** powered by Google Gemini (RAG) for on‑demand Q&A.
----
-## 🎯 Project Highlights
-|
- Feature 
-|
- Description 
-|
-|
----------
-|
--------------
-|
-|
-**
-OCR extraction
-**
-|
- Uses 
-**
-Tesseract
-**
- (via 
-`sentence‑transformers`
- embeddings) to read PDFs & images. 
-|
-|
-**
-Document classification
-**
-|
- Detects 
-*
-Valid Invoice
-*
-, 
-*
-Ambiguous
-*
-, or 
-*
-Not an Invoice
-*
- with confidence scores. 
-|
-|
-**
-Math validation
-**
-|
- Automatically checks that line‑item totals add up correctly. 
-|
-|
-**
-SQLite persistence
-**
-|
- All extracted data lives in 
-`backend/invosense.db`
-. 
-|
-|
-**
-Dynamic Dashboard
-**
-|
- Visual analytics (spending trends, upload history) built with 
-**
-React
-**
- & 
-**
-Recharts
-**
-. 
-|
-|
-**
-RAG Chatbot
-**
-|
- Upload policy documents, ask natural‑language questions – the backend retrieves relevant chunks from a local ChromaDB vector store and answers using 
-**
-Gemini‑Flash
-**
-. 
-|
-|
-**
-Docker‑ready
-**
-|
- Simple 
-`docker compose`
- (backend + frontend) for production deployments. 
-|
-|
-**
-Cross‑platform
-**
-|
- Runs on Windows (tested) and Linux/macOS with minimal changes. 
-|
----
-## 📦 Quick Start (Windows)
-> **Prerequisites**  
-> * Python 3.12+ (installed)  
-> * Node 20+ (for the frontend)  
-> * **Tesseract OCR** – download the 64‑bit installer from the [UB Mannheim repo](https://github.com/UB-Mannheim/tesseract/wiki) and note the install path (e.g. `C:\Program Files\Tesseract-OCR\tesseract.exe`).  
-1. **Clone the repo** (you already have it locally)  
-   ```powershell
-   git clone https://github.com/jennifer2006-github/InvoSense.git
-   cd InvoSense
-Backend setup
 
-powershell
+A full-stack AI-powered application that automates invoice processing using OCR, intelligent document classification, invoice validation, and a Retrieval-Augmented Generation (RAG) chatbot.
 
+## Overview
 
-cd backend
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-Create a .env file (or edit the existing one) and add:
+InvoSense helps organizations digitize and manage invoices efficiently. The system extracts important invoice information from uploaded documents, validates calculations, stores records in a database, and provides an AI-powered chatbot for answering questions from uploaded policy documents.
 
+## Key Features
 
-GEMINI_API_KEY=YOUR_GEMINI_KEY
-TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe
-Run the API
+### OCR Data Extraction
 
-powershell
+Extracts invoice details from PDF and image files using Tesseract OCR.
 
+### Document Classification
 
-uvicorn main:app --reload
-Frontend setup
-Open a new terminal:
+Automatically categorizes documents as:
 
-powershell
+* Valid Invoice
+* Ambiguous
+* Not an Invoice
 
+### Invoice Validation
 
-cd ..\frontend
-npm install
-npm run dev
-The app will be reachable at http://localhost:5173.
+Checks invoice calculations and verifies total amounts for accuracy.
 
-Upload a policy document (optional)
-Navigate to the Policy Chatbot tab, upload a PDF/DOCX, then ask questions like:
+### Database Management
 
-What is the refund policy for returned items?
-🛠️ Development & Testing
-Run unit tests (backend):
+Stores extracted invoice data, classifications, and processing history using SQLite.
 
-powershell
+### Interactive Dashboard
 
+Provides visual insights into:
 
-pytest
-Add new routes – see backend/routes/ for examples (upload.py, invoice.py, chat.py).
+* Spending trends
+* Invoice statistics
+* Upload history
+* Processing performance
 
-Add new React pages – place components under frontend/src/pages/ and update the router in frontend/src/App.jsx.
+### RAG-Based Chatbot
 
-Update the RAG pipeline – modify backend/services/rag.py:
+Upload policy documents and ask questions in natural language. The chatbot retrieves relevant information from stored documents and generates accurate responses using Google Gemini.
 
-Change the embedding model (SentenceTransformer('all-MiniLM-L6-v2') by default).
-Adjust the ChromaDB collection name or storage path (backend/chroma_db/).
-📚 API Overview
-Endpoint	Method	Description
-/api/upload	POST	Upload an invoice image/PDF; returns extracted fields & classification.
-/api/invoices	GET	List all processed invoices with timestamps and confidence.
-/api/chat	POST	Ask a question to the policy RAG chatbot; returns answer and source snippets.
-/api/analytics	GET	Summary stats for dashboards (total spend, invoices per day, etc.).
-Reference the OpenAPI docs at http://localhost:8000/docs when the server is running.
+## Technology Stack
 
+### Frontend
+
+* React.js
+* Recharts
+* Axios
+
+### Backend
+
+* FastAPI
+* Python
+* SQLite
+
+### AI & Machine Learning
+
+* Tesseract OCR
+* Sentence Transformers
+* ChromaDB
+* Google Gemini Flash
+
+## API Endpoints
+
+| Endpoint       | Method | Description                                 |
+| -------------- | ------ | ------------------------------------------- |
+| /api/upload    | POST   | Upload and process invoice documents        |
+| /api/invoices  | GET    | Retrieve processed invoice records          |
+| /api/chat      | POST   | Interact with the AI chatbot                |
+| /api/analytics | GET    | Retrieve dashboard analytics and statistics |
+
+## Benefits
+
+* Reduces manual invoice processing effort
+* Improves data accuracy through automated validation
+* Provides intelligent document classification
+* Enables quick access to policy information through AI-powered search
+* Centralizes invoice management and analytics
